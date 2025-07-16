@@ -10,3 +10,10 @@ git clone https://github.com/sa713/sberphoto365
 cd sberphoto365  
 chmod +x deploy.sh  
 ./deploy.sh  
+
+# uninstall  
+chmod +x undeploy.sh  
+./undeploy.sh  
+
+# start
+sudo systemctl start sberphoto365.service  
