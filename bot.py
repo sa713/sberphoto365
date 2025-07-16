@@ -1,5 +1,5 @@
 import asyncio
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, F
 from handlers import router
 from config import BOT_TOKEN
 

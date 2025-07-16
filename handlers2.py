@@ -4,28 +4,25 @@ from aiogram.enums import ContentType
 from datetime import datetime, timedelta
 import sqlite3
 import logging
-import uuid
-
+#
 from config import CHANNEL_ID, DATABASE_PATH, CHAT_ID, CHALLENGE_START_DATE
 
 router = Router()
 
-
 @router.message(F.text == "/start")
 async def cmd_start(message: Message):
-    logging.info("👋 Команда /start от %s", message.from_user.id)
+    logging.info("👋 Команда /start получена от пользователя %s", message.from_user.id)
     await message.answer(
         "👋 Привет! Это бот фото-челленджа 365.\n"
         "Отправь мне фотографию, и я помогу опубликовать её в челлендже."
     )
 
-
 @router.message(F.text == "/test")
 async def test(message: Message):
     await message.answer("✅ Бот работает!")
 
-
-@router.message(F.content_type == ContentType.PHOTO)
+#@router.message(F.photo)
+@router.message(F.content_type == "photo")
 async def handle_photo(message: Message):
     bot = message.bot
     user_id = message.from_user.id
@@ -40,51 +37,39 @@ async def handle_photo(message: Message):
         await message.reply("⚠️ Не удалось проверить ваш статус в чате.")
         return
 
-    short_id = str(uuid.uuid4())[:8]
-
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.execute(
-        "INSERT OR REPLACE INTO temp_photos (short_id, file_id) VALUES (?, ?)",
-        (short_id, file_id)
-    )
-    conn.commit()
-    conn.close()
-
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="📅 Сегодня", callback_data=f"date:today:{short_id}"),
-            InlineKeyboardButton(text="📆 Вчера", callback_data=f"date:yesterday:{short_id}")
+            InlineKeyboardButton(text="📅 Сегодня", callback_data=f"date:today:{file_id}"),
+            InlineKeyboardButton(text="📆 Вчера", callback_data=f"date:yesterday:{file_id}")
         ],
-        [InlineKeyboardButton(text="❌ Отменить", callback_data=f"cancel:{short_id}")]
+        [InlineKeyboardButton(text="❌ Отменить", callback_data="cancel")]
     ])
     await message.reply("Выбери дату съёмки фотографии:", reply_markup=keyboard)
-
 
 @router.callback_query(F.data.startswith("date:"))
 async def process_date_choice(callback_query: CallbackQuery):
     bot = callback_query.bot
-    _, choice, short_id = callback_query.data.split(":")
+    _, choice, file_id = callback_query.data.split(":")
     user = callback_query.from_user
     user_id = user.id
     username = user.username or f"user{user_id}"
 
+    now = datetime.now()
+    if choice == "today":
+        shot_date = now.date()
+    elif choice == "yesterday":
+        shot_date = now.date() - timedelta(days=1)
+    else:
+        await callback_query.message.edit_text("❌ Действие отменено.")
+        return
+
     conn = sqlite3.connect(DATABASE_PATH)
     c = conn.cursor()
-    c.execute("SELECT file_id FROM temp_photos WHERE short_id = ?", (short_id,))
-    row = c.fetchone()
-    if not row:
-        await callback_query.message.edit_text("❌ Срок действия фото истёк. Отправьте новое.")
-        return
-    file_id = row[0]
 
-    now = datetime.now()
-    shot_date = now.date() if choice == "today" else now.date() - timedelta(days=1)
-
+    # Проверка на дубли
     c.execute("SELECT 1 FROM photos WHERE user_id = ? AND shot_date = ?", (user_id, str(shot_date)))
     if c.fetchone():
         await callback_query.message.edit_text("⚠️ Вы уже отправляли фото за эту дату.")
-        conn.execute("DELETE FROM temp_photos WHERE short_id = ?", (short_id,))
-        conn.commit()
         conn.close()
         return
 
@@ -94,22 +79,17 @@ async def process_date_choice(callback_query: CallbackQuery):
     """, (user_id, username, file_id, str(shot_date)))
     conn.commit()
 
-    # Сохраняем vote_id → file_id
-    vote_id = str(uuid.uuid4())[:8]
-    c.execute("INSERT OR REPLACE INTO vote_map (short_id, file_id) VALUES (?, ?)", (vote_id, file_id))
-    conn.commit()
-
+    # Получаем все даты съёмок пользователя
     c.execute("SELECT DISTINCT shot_date FROM photos WHERE user_id = ?", (user_id,))
     dates = sorted(datetime.strptime(row[0], "%Y-%m-%d").date() for row in c.fetchall())
-
-    conn.execute("DELETE FROM temp_photos WHERE short_id = ?", (short_id,))
-    conn.commit()
     conn.close()
 
     def current_streak(dates):
+        if not dates:
+            return 0
         streak = 0
-        current = max(dates, default=None)
-        while current and current in dates:
+        current = max(dates)
+        while current in dates:
             streak += 1
             current -= timedelta(days=1)
         return streak
@@ -137,30 +117,21 @@ async def process_date_choice(callback_query: CallbackQuery):
 
     vote_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="👍", callback_data=f"vote:{vote_id}:up"),
-            InlineKeyboardButton(text="🤔", callback_data=f"vote:{vote_id}:down")
+            InlineKeyboardButton(text="👍", callback_data=f"vote:{file_id}:up"),
+            InlineKeyboardButton(text="🤔", callback_data=f"vote:{file_id}:down")
         ]
     ])
 
     await bot.send_photo(CHANNEL_ID, file_id, caption=caption, reply_markup=vote_keyboard)
     await callback_query.message.edit_text("✅ Фото опубликовано!")
 
-
 @router.callback_query(F.data.startswith("vote:"))
 async def handle_vote(callback_query: CallbackQuery):
-    _, vote_id, direction = callback_query.data.split(":")
+    _, file_id, direction = callback_query.data.split(":")
     user_id = callback_query.from_user.id
 
     conn = sqlite3.connect(DATABASE_PATH)
     c = conn.cursor()
-
-    c.execute("SELECT file_id FROM vote_map WHERE short_id = ?", (vote_id,))
-    row = c.fetchone()
-    if not row:
-        await callback_query.answer("⚠️ Голосование недоступно.")
-        conn.close()
-        return
-    file_id = row[0]
 
     c.execute("SELECT 1 FROM votes WHERE voter_id = ? AND file_id = ?", (user_id, file_id))
     if c.fetchone():
@@ -177,13 +148,3 @@ async def handle_vote(callback_query: CallbackQuery):
     conn.close()
 
     await callback_query.answer("✅ Голос учтён.")
-
-
-@router.callback_query(F.data.startswith("cancel:"))
-async def cancel_photo(callback_query: CallbackQuery):
-    short_id = callback_query.data.split(":")[1]
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.execute("DELETE FROM temp_photos WHERE short_id = ?", (short_id,))
-    conn.commit()
-    conn.close()
-    await callback_query.message.edit_text("❌ Загрузка отменена.")
