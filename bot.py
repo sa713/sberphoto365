@@ -1,19 +1,29 @@
 import asyncio
+import logging
 from aiogram import Bot, Dispatcher
+from config import BOT_TOKEN, LOG_FILE_PATH
 from handlers import router
 from scheduler import setup_scheduler
-import config
-import database
+
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(LOG_FILE_PATH, mode="w", encoding="utf-8")
+        ]
+    )
 
 async def main():
-    database.init_db()
-    bot = Bot(token=config.BOT_TOKEN, parse_mode="HTML")
+    setup_logging()
+
+    bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
     dp = Dispatcher()
     dp.include_router(router)
 
-    setup_scheduler(bot)
+    await setup_scheduler(bot)
 
-    print("Бот запускается...")
+    logging.info("Бот запущен.")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
