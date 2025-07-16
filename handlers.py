@@ -8,6 +8,12 @@ from config import CHANNEL_ID, DATABASE_PATH, CHAT_ID, CHALLENGE_START_DATE
 
 router = Router()
 
+@router.message(F.command("start"))
+async def cmd_start(message: Message):
+    await message.answer(
+        "👋 Привет! Это бот фото-челленджа 365.\n"
+        "Отправь мне фотографию, и я помогу опубликовать её в челлендже."
+    )
 
 @router.message(F.photo)
 async def handle_photo(message: Message, bot: Bot):
