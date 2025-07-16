@@ -47,6 +47,19 @@ Environment="PYTHONUNBUFFERED=1"
 WantedBy=multi-user.target
 EOF
 
+echo "📄 Создание конфигурации logrotate..."
+cat > "$LOGROTATE_CONF" <<EOF
+$LOG_FILE {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
+EOF
+
 echo "🔄 Перезапуск systemd и запуск бота как службы..."
 systemctl daemon-reexec
 systemctl daemon-reload
@@ -54,3 +67,4 @@ systemctl enable ${SERVICE_NAME}.service
 systemctl start ${SERVICE_NAME}.service
 
 echo "✅ Готово! Бот запущен как служба: systemctl status ${SERVICE_NAME}.service"
+echo "ℹ️ Логи ротируются ежедневно, сохраняются 7 архивных копий с сжатием."
