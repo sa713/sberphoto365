@@ -6,26 +6,20 @@ set -e
 PROJECT_DIR="/root/sberphoto365"
 PYTHON_VERSION="python3"
 SERVICE_NAME="sberphoto365"
-VENV_DIR="$PROJECT_DIR/venv"
 BOT_FILE="bot.py"
 LOG_FILE="$PROJECT_DIR/bot.log"
 LOGROTATE_CONF="/etc/logrotate.d/${SERVICE_NAME}"
 
 echo "🔧 Обновление системы и установка зависимостей..."
 apt update
-apt install -y $PYTHON_VERSION python3-pip python3-venv
+apt install -y $PYTHON_VERSION python3-pip curl logrotate
 
-echo "📁 Создание рабочей директории..."
-mkdir -p "$PROJECT_DIR"
+echo "📁 Переход в рабочую директорию..."
 cd "$PROJECT_DIR"
 
-echo "🐍 Создание виртуального окружения..."
-$PYTHON_VERSION -m venv "$VENV_DIR"
-source "$VENV_DIR/bin/activate"
-
-echo "📦 Установка зависимостей..."
-pip install --upgrade pip
-pip install -r requirements.txt
+echo "📦 Установка зависимостей глобально..."
+pip3 install --upgrade pip
+pip3 install -r requirements.txt
 
 echo "🛠 Инициализация базы данных..."
 $PYTHON_VERSION init_db.py
@@ -40,9 +34,11 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=$PROJECT_DIR
-ExecStart=$VENV_DIR/bin/python3 $PROJECT_DIR/$BOT_FILE
+ExecStart=/usr/bin/python3 $PROJECT_DIR/$BOT_FILE
 Restart=always
 RestartSec=5
+StandardOutput=append:$LOG_FILE
+StandardError=append:$LOG_FILE
 Environment="PYTHONUNBUFFERED=1"
 
 [Install]
@@ -66,7 +62,8 @@ echo "🔄 Перезапуск systemd и запуск бота как служ
 systemctl daemon-reexec
 systemctl daemon-reload
 systemctl enable ${SERVICE_NAME}.service
-systemctl start ${SERVICE_NAME}.service
+systemctl restart ${SERVICE_NAME}.service
 
 echo "✅ Готово! Бот запущен как служба: systemctl status ${SERVICE_NAME}.service"
-echo "ℹ️ Логи ротируются ежедневно, сохраняются 7 архивных копий с сжатием."
+echo "📄 Лог доступен по пути: $LOG_FILE"
+echo "ℹ️ Логи ротируются ежедневно, хранятся 7 архивов с компрессией."
