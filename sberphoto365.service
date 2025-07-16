@@ -1,0 +1,15 @@
+[Unit]
+Description=Telegram Photo Challenge Bot (365)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/sberphoto365
+ExecStart=/root/sberphoto365/venv/bin/python3 /root/sberphoto365/bot.py
+Restart=always
+RestartSec=5
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target
