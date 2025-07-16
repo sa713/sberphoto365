@@ -8,6 +8,8 @@ PYTHON_VERSION="python3"
 SERVICE_NAME="sberphoto365"
 VENV_DIR="$PROJECT_DIR/venv"
 BOT_FILE="bot.py"
+LOG_FILE="$PROJECT_DIR/bot.log"
+LOGROTATE_CONF="/etc/logrotate.d/${SERVICE_NAME}"
 
 echo "🔧 Обновление системы и установка зависимостей..."
 apt update
