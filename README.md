@@ -3,7 +3,7 @@
 
 # install
 sudo apt update  
-sudo apt install -y git python3 python3-pip python3-venv logrotate   
+sudo apt install -y git   
 cd ~  
 git clone https://github.com/sa713/sberphoto365  
 cd sberphoto365  
