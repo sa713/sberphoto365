@@ -1,5 +1,6 @@
-from aiogram import Router, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram import Router, F
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram import Bot
 from datetime import datetime, timedelta
 import sqlite3
 
@@ -7,9 +8,9 @@ from config import CHANNEL_ID, DATABASE_PATH, CHAT_ID, CHALLENGE_START_DATE
 
 router = Router()
 
-@router.message(types.ContentType.PHOTO)
-async def handle_photo(message: types.Message):
-    bot = message.bot
+
+@router.message(F.photo)
+async def handle_photo(message: Message, bot: Bot):
     user_id = message.from_user.id
 
     try:
@@ -24,16 +25,16 @@ async def handle_photo(message: types.Message):
     file_id = message.photo[-1].file_id
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton("📅 Сегодня", callback_data=f"date:today:{file_id}"),
-            InlineKeyboardButton("📆 Вчера", callback_data=f"date:yesterday:{file_id}")
+            InlineKeyboardButton(text="📅 Сегодня", callback_data=f"date:today:{file_id}"),
+            InlineKeyboardButton(text="📆 Вчера", callback_data=f"date:yesterday:{file_id}")
         ],
-        [InlineKeyboardButton("❌ Отменить", callback_data="cancel")]
+        [InlineKeyboardButton(text="❌ Отменить", callback_data="cancel")]
     ])
     await message.reply("Выбери дату съёмки фотографии:", reply_markup=keyboard)
 
-@router.callback_query(lambda c: c.data and c.data.startswith("date:"))
-async def process_date_choice(callback_query: types.CallbackQuery):
-    bot = callback_query.bot
+
+@router.callback_query(F.data.startswith("date:"))
+async def process_date_choice(callback_query: CallbackQuery, bot: Bot):
     _, choice, file_id = callback_query.data.split(":")
     user = callback_query.from_user
     user_id = user.id
@@ -102,16 +103,17 @@ async def process_date_choice(callback_query: types.CallbackQuery):
 
     vote_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton("👍", callback_data=f"vote:{file_id}:up"),
-            InlineKeyboardButton("🤔", callback_data=f"vote:{file_id}:down")
+            InlineKeyboardButton(text="👍", callback_data=f"vote:{file_id}:up"),
+            InlineKeyboardButton(text="🤔", callback_data=f"vote:{file_id}:down")
         ]
     ])
 
     await bot.send_photo(CHANNEL_ID, file_id, caption=caption, reply_markup=vote_keyboard)
     await callback_query.message.edit_text("✅ Фото опубликовано!")
 
-@router.callback_query(lambda c: c.data and c.data.startswith("vote:"))
-async def handle_vote(callback_query: types.CallbackQuery):
+
+@router.callback_query(F.data.startswith("vote:"))
+async def handle_vote(callback_query: CallbackQuery):
     _, file_id, direction = callback_query.data.split(":")
     user_id = callback_query.from_user.id
 
