@@ -1,13 +1,22 @@
 import os
-from datetime import timezone, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))  # ID канала для публикаций
-CHAT_ID = int(os.getenv("CHAT_ID"))        # ID чата с участниками
+CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
+CHAT_ID = int(os.getenv("CHAT_ID"))
 
-TIMEZONE = timezone(timedelta(hours=3))  # МСК
-PUBLISH_HOUR = 1                          # 01:00 МСК
+# Путь к базе данных
 DATABASE_PATH = "photo_challenge.db"
+
+# Дата начала челленджа (день №1)
+CHALLENGE_START_DATE = datetime.strptime(os.getenv("CHALLENGE_START_DATE"), "%Y-%m-%d").date()
+
+# Время публикации сводки (по МСК)
+PUBLISH_HOUR = int(os.getenv("PUBLISH_HOUR", 8))  # час (0–23)
+PUBLISH_MINUTE = int(os.getenv("PUBLISH_MINUTE", 0))  # минута (0–59)
+
+# Путь к лог-файлу
+LOG_FILE_PATH = "bot.log"
