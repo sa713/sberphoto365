@@ -7,6 +7,9 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
     dp.include_router(router)
+
+    await setup_scheduler(bot) 
+    
     try:
         print("🚀 Бот запускается...")
         await dp.start_polling(bot)
