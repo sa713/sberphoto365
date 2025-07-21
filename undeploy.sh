@@ -1,3 +1,4 @@
+# v1.0
 #!/bin/bash
 
 set -e
