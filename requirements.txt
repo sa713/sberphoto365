@@ -1,4 +1,4 @@
-#v1.0
+# v1.0
 
 aiogram==3.4.1
 APScheduler==3.10.4
