@@ -1,12 +1,17 @@
 import asyncio
 from aiogram import Bot
+from aiogram.types import InputMediaPhoto
 from datetime import datetime, timedelta, time as dtime
-from config import DATABASE_PATH, CHANNEL_ID, PUBLISH_HOUR, PUBLISH_MINUTE
+from config import DATABASE_PATH, CHANNEL_ID, PUBLISH_HOUR, PUBLISH_MINUTE, CHALLENGE_START_DATE
 import sqlite3
 
 async def publish_daily_summary(bot: Bot):
     now = datetime.now()
     summary_date = (now - timedelta(days=2)).date()  # Сводка за позавчера
+
+    # Расчёт номера дня челленджа
+    challenge_day = (summary_date - CHALLENGE_START_DATE).days + 1
+    challenge_hashtag = f"#day{challenge_day}"
 
     conn = sqlite3.connect(DATABASE_PATH)
     c = conn.cursor()
@@ -20,23 +25,31 @@ async def publish_daily_summary(bot: Bot):
     conn.close()
 
     if not rows:
-        await bot.send_message(CHANNEL_ID, f"📊 Сводка за {summary_date}:\nНет загруженных фотографий.")
+        await bot.send_message(CHANNEL_ID, f"📊#Сводка за {summary_date}:\nНет загруженных фотографий.")
         return
 
     sorted_rows = sorted(rows, key=lambda r: r[2], reverse=True)  # сортировка по upvotes
     top_score = sorted_rows[0][2]
 
     winners = [r for r in sorted_rows if r[2] == top_score and top_score > 0]
-    summary_lines = [f"📅 Сводка за {summary_date}"]
+#    summary_lines = [f"📅#Сводка за {summary_date}\n"]
+    summary_lines = [f"📅#Сводка за {summary_date} ({challenge_hashtag})\n"]
 
     for username, _, up, down in sorted_rows:
         summary_lines.append(f"@{username}: 👍 {up} | 🤔 {down}")
 
     if winners:
         authors = ", ".join(f"@{r[0]}" for r in winners)
-        await bot.send_message(CHANNEL_ID, "\n".join(summary_lines) + f"\n🏆 Победа: {authors}")
-        for _, file_id, _, _ in winners:
-            await bot.send_photo(CHANNEL_ID, file_id)
+        await bot.send_message(CHANNEL_ID, "\n".join(summary_lines) + f"\n\n🏆 Победа: {authors}")
+#        for _, file_id, _, _ in winners:
+#            await bot.send_photo(CHANNEL_ID, file_id)
+
+    # Подготовим медиа-группу
+        media_group = [
+            InputMediaPhoto(media=r[1], caption=f"@{r[0]}" if i == 0 else "")
+            for i, r in enumerate(winners)
+        ]
+        await bot.send_media_group(CHANNEL_ID, media_group)
     else:
         await bot.send_message(CHANNEL_ID, "\n".join(summary_lines) + "\n❌ Нет победителей (0 голосов).")
 
