@@ -1,3 +1,5 @@
+# v1.0
+
 from database import init_db
 import sqlite3
 from config import DATABASE_PATH
