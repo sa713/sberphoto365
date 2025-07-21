@@ -16,7 +16,9 @@ async def cmd_start(message: Message):
     logging.info("👋 Команда /start от %s", message.from_user.id)
     await message.answer(
         "👋 Привет! Это бот фото-челленджа 365.\n"
-        "Отправь мне фотографию, и я помогу опубликовать её в челлендже."
+        "Отправь мне фотографию, и я помогу опубликовать её.\n"
+        "Суть челленджа - снимать каждый день на протяжении года (365 дней). Я буду считать длительность серии и указывать её в постах. А ещё за каждый день буду публиковать снимки с наибольшим количеством лайков.\n"
+        "Удачи!"
     )
 
 
@@ -132,7 +134,7 @@ async def process_date_choice(callback_query: CallbackQuery):
         f"🔥 День #{day_number} (#day{day_number})\n"
         f"📸 Автор: @{username} (#{username})\n"
         f"🗓 Дата съёмки: {shot_date}\n"
-        f"📊 Серия: {current_streak(dates)} дней подряд (рекорд: {best_streak(dates)})"
+        f"📊 Серия: {current_streak(dates)} дней (рекорд: {best_streak(dates)})"
     )
 
     vote_keyboard = InlineKeyboardMarkup(inline_keyboard=[
