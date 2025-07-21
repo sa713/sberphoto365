@@ -16,7 +16,7 @@ DATABASE_PATH = "photo_challenge.db"
 CHALLENGE_START_DATE = date(2025, 7, 16)
 
 # Время публикации сводки (по МСК)
-PUBLISH_HOUR = int(os.getenv("PUBLISH_HOUR", 8))  # час (0–23)
+PUBLISH_HOUR = int(os.getenv("PUBLISH_HOUR", 9))  # час (0–23)
 PUBLISH_MINUTE = int(os.getenv("PUBLISH_MINUTE", 0))  # минута (0–59)
 
 # Путь к лог-файлу
