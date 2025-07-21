@@ -1,3 +1,5 @@
+# v1.0
+
 [Unit]
 Description=Telegram Photo Challenge Bot (365)
 After=network.target
