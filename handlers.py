@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.enums import ContentType
+from aiogram.enums import ChatType, ContentType
 from datetime import datetime, timedelta
 import sqlite3
 import logging
@@ -27,7 +27,7 @@ async def test(message: Message):
     await message.answer("✅ Бот работает!")
 
 
-@router.message(F.content_type == ContentType.PHOTO)
+@router.message(F.chat.type == ChatType.PRIVATE, F.content_type == ContentType.PHOTO)
 async def handle_photo(message: Message):
     bot = message.bot
     user_id = message.from_user.id
